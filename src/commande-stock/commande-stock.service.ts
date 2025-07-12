@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCommandeStockDto } from './commandeStockDto/createCommandeStock.dto';
-import { UpdateCommandeStockDto } from './commandeStockDto/updateCommandeStock.dto';
+import { UpdateCommandeStockWithLotsDto } from './commandeStockDto/updateCommandeStock.dto';
 import { Etat, TypeMouvement } from 'generated/prisma';
 
 @Injectable()
@@ -65,55 +65,61 @@ export class CommandeStockService {
         });
         */
 
-    async updateEtat(id:number, data: UpdateCommandeStockDto){
+ async updateEtat(id: number, data: UpdateCommandeStockWithLotsDto) {
+    // 🧩 1. Récupération de la commande avec ses lignes
+    const commande = await this.prisma.commandeStock.findUnique({
+      where: { id },
+      include: {
+        lignes: true,
+        fournisseur: true,
+      },
+    });
 
+    if (!commande) {
+      throw new NotFoundException('Commande non trouvée');
+    }
 
-        const commande= await this.prisma.commandeStock.findUnique({
-            where: {id}, 
-            include: {lignes:true}
+    // ✅ 2. Si changement vers "Terminer", créer les lots et mouvements
+    if (data.etat === Etat.Terminer && commande.etat !== Etat.Terminer) {
+      for (const ligne of commande.lignes) {
+        // 🔍 Chercher la date de péremption associée à ce produit dans le tableau fourni
+        const lotInput = data.lots.find(l => l.produitId === ligne.produitId);
+
+        if (!lotInput) {
+          throw new BadRequestException(`Date de péremption manquante pour le produit ID ${ligne.produitId}`);
+        }
+
+        // ✅ 3. Créer le lot de stock avec la date de péremption fournie
+        const lot = await this.prisma.lotStock.create({
+          data: {
+            produitId: ligne.produitId,
+            quantité: ligne.quantité,
+            datePeremption: new Date(lotInput.datePeremption),
+          },
         });
 
+        // ✅ 4. Créer le mouvement de stock lié au lot
+        await this.prisma.mouvementStock.create({
+          data: {
+            produitId: ligne.produitId,
+            quantité: ligne.quantité,
+            typeMouvement: TypeMouvement.Entrer,
+            lotStockId: lot.id,
+          },
+        });
+      }
+    }
 
-        if(!commande) throw new NotFoundException("Commande non trouvé");
+    // ✅ 5. Mise à jour de l’état de la commande
+    return this.prisma.commandeStock.update({
+      where: { id },
+      data: {
+        etat: data.etat,
+        updatedAt: new Date(),
+      },
+    });
+  }
 
-
-         // 1. Si changement vers 'Terminer
-        if(data.etat === "Terminer" && commande.etat !== "Terminer"){
-            for(const l of commande.lignes){
-                //Creation du mouvement de stock pour chaque produit
-                await this.prisma.mouvementStock.create({
-                    data: {
-                        quantité: l.quantité,
-                        typeMouvement: TypeMouvement.Entrer,
-                        produitId: l.produitId
-                    }
-                });
-
-
-                // Vérifier si le stock existe
-                const existingStock = await this.prisma.stock.findUnique({where: {produitId: l.produitId}});
-                if(existingStock){
-                    await this.prisma.stock.update({
-                        where : {produitId: l.produitId},
-                        data: {
-                            quantité: {increment: l.quantité}
-                        }
-                    });
-                }else{
-                    await this.prisma.stock.create({
-                       data: {
-                        produitId: l.produitId,
-                        quantité: l.quantité
-                       } 
-                    });
-                }
-            }
-        }    
-        return this.prisma.commandeStock.update({
-            where: {id},
-            data: {etat: data.etat}
-            });
-        }
 
 
 
@@ -122,7 +128,7 @@ export class CommandeStockService {
             return this.prisma.commandeStock.findMany({
                 where: {etat:"En_Cours"},
                 include: {
-                    lignes: true
+                    lignes: true,fournisseur:true
                 }
             })
         }
@@ -131,7 +137,7 @@ export class CommandeStockService {
         async findAll(){
             return this.prisma.commandeStock.findMany({
                 include: {
-                    lignes: true
+                    lignes: true,fournisseur:true
                 }
             })
         }
@@ -142,8 +148,15 @@ export class CommandeStockService {
             const commande = await this.prisma.commandeStock.findUnique({where: {id}});
             if(!commande) throw new NotFoundException("Commande non trouver");
             return this.prisma.commandeStock.findUnique({
-                where: {id},
-                include: {lignes:true}
-            });
+                where: { id },
+                include: {
+                  fournisseur: true,
+                  lignes: {
+                    include: {
+                      produit: true, // Inclut les détails du produit
+                    },
+                  },
+                },
+              });
         }
     }

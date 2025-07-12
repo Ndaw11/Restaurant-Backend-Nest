@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Get, Param, ParseIntPipe, Put } from '@nestjs/common';
 import { CommandeStockService } from './commande-stock.service';
 import { CreateCommandeStockDto } from './commandeStockDto/createCommandeStock.dto';
-import { UpdateCommandeStockDto } from './commandeStockDto/updateCommandeStock.dto';
+import { UpdateCommandeStockWithLotsDto } from './commandeStockDto/updateCommandeStock.dto';
 
 @Controller('commande-stock')
 export class CommandeStockController {
@@ -44,13 +44,22 @@ export class CommandeStockController {
 
 
     //Rendre la commande terminer
-    @Put(':id')
-    updateEtat(
-        @Param('id', ParseIntPipe) id : number,
-        @Body() data: UpdateCommandeStockDto
-    ){
-        return this.commandeStockService.updateEtat(id,data);
-    }
+    // @Put(':id')
+    // updateEtat(
+    //     @Param('id', ParseIntPipe) id : number,
+    //     @Body() data: UpdateCommandeStockDto
+    // ){
+    //     return this.commandeStockService.updateEtat(id,data);
+    // }
+
+    @Post(':id')
+    updateEtatCommande(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: UpdateCommandeStockWithLotsDto
+) {
+  return this.commandeStockService.updateEtat(id, data);
+}
+
 
 
 }

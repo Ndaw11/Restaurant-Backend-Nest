@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/c
 import { ProduitService } from './produit.service';
 import { ProduitDto } from './dto/create-produit.dto';
 import { UpdateProduitDto } from './dto/update-produit.dto';
+import { FournisseurOutputDto } from '../fournisseur/fournisseurDto/FProduitOutput.dto';
+import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 
 @Controller('produit')
 export class ProduitController {
@@ -19,6 +21,14 @@ export class ProduitController {
 
 
     //Methode lister
+    @Get("/activate")
+    FindAllActivate(){
+        return this.ProduitService.findAllActivate();
+    }
+    @Get("deleted")
+    FindAllDeleted(){
+        return this.ProduitService.findAllDeleted();
+    }
     @Get("")
     FindAll(){
         return this.ProduitService.findAll();
@@ -26,7 +36,7 @@ export class ProduitController {
 
 
     //Methode Supprimer
-    @Post(":id/delete")
+    @Put(":id/delete")
     delete(@Param('id', ParseIntPipe) id: number){
         return this.ProduitService.delete(id);
     }
@@ -49,9 +59,14 @@ export class ProduitController {
 
 
     //Methode pour activer un produit
-    @Post(':id/activate')
+    @Put(':id/reactivate')
     activateProduit(@Param('id', ParseIntPipe) id : number){
         return this.ProduitService.activateProduit(id);
     }
 
+     // Nouvelle route pour récupérer les fournisseurs d'un produit
+  @Get(':id/fournisseurs')
+  findFournisseursByProduit(@Param('id', ParseIntPipe) id: number): Promise<FournisseurOutputDto[]> {
+    return this.ProduitService.findFournisseursByProduit(id);
+  }
 }

@@ -2,16 +2,16 @@
 CREATE TYPE "RoleUser" AS ENUM ('Admin', 'Staff', 'Client');
 
 -- CreateEnum
-CREATE TYPE "Etat" AS ENUM ('En_Cours', 'Annuler');
+CREATE TYPE "Etat" AS ENUM ('En_Cours', 'Terminer', 'Annuler');
 
 -- CreateEnum
-CREATE TYPE "TypeMouvement" AS ENUM ('Sortie');
+CREATE TYPE "TypeMouvement" AS ENUM ('Entrer', 'Sortie');
 
 -- CreateEnum
 CREATE TYPE "EtatCommande" AS ENUM ('En_Cours', 'Payer', 'Annuler');
 
 -- CreateEnum
-CREATE TYPE "MoyenPaiement" AS ENUM ('Carte', 'Mobile_Money');
+CREATE TYPE "MoyenPaiement" AS ENUM ('Espece', 'Carte', 'Mobile_Money');
 
 -- CreateEnum
 CREATE TYPE "StatutPaiement" AS ENUM ('En_Attente', 'Valider', 'Echouer');
@@ -30,11 +30,22 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
+CREATE TABLE "LotStock" (
+    "id" SERIAL NOT NULL,
+    "produitId" INTEGER NOT NULL,
+    "quantité" INTEGER NOT NULL,
+    "datePeremption" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LotStock_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Produit" (
     "id" SERIAL NOT NULL,
     "nom" TEXT NOT NULL,
     "seuilMinimum" INTEGER NOT NULL,
-    "datePeremption" TIMESTAMP(3) NOT NULL,
     "supprimer" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -93,22 +104,12 @@ CREATE TABLE "LigneCommandeStock" (
 );
 
 -- CreateTable
-CREATE TABLE "Stock" (
-    "id" SERIAL NOT NULL,
-    "quantité" INTEGER NOT NULL,
-    "produitId" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Stock_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "MouvementStock" (
     "id" SERIAL NOT NULL,
     "quantité" INTEGER NOT NULL,
     "typeMouvement" "TypeMouvement" NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lotStockId" INTEGER NOT NULL,
     "produitId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -223,9 +224,6 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Produit_nom_key" ON "Produit"("nom");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Stock_produitId_key" ON "Stock"("produitId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Plat_nom_key" ON "Plat"("nom");
 
 -- CreateIndex
@@ -233,6 +231,9 @@ CREATE UNIQUE INDEX "Commande_paiementId_key" ON "Commande"("paiementId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Commande_factureId_key" ON "Commande"("factureId");
+
+-- AddForeignKey
+ALTER TABLE "LotStock" ADD CONSTRAINT "LotStock_produitId_fkey" FOREIGN KEY ("produitId") REFERENCES "Produit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ProduitFournisseur" ADD CONSTRAINT "ProduitFournisseur_fournisseurId_fkey" FOREIGN KEY ("fournisseurId") REFERENCES "Fournisseur"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -250,7 +251,7 @@ ALTER TABLE "LigneCommandeStock" ADD CONSTRAINT "LigneCommandeStock_commandeId_f
 ALTER TABLE "LigneCommandeStock" ADD CONSTRAINT "LigneCommandeStock_produitId_fkey" FOREIGN KEY ("produitId") REFERENCES "Produit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Stock" ADD CONSTRAINT "Stock_produitId_fkey" FOREIGN KEY ("produitId") REFERENCES "Produit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "MouvementStock" ADD CONSTRAINT "MouvementStock_lotStockId_fkey" FOREIGN KEY ("lotStockId") REFERENCES "LotStock"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MouvementStock" ADD CONSTRAINT "MouvementStock_produitId_fkey" FOREIGN KEY ("produitId") REFERENCES "Produit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -1,10 +1,21 @@
-import { PartialType } from "@nestjs/mapped-types";
-import { CreateCommandeStockDto } from "./createCommandeStock.dto";
-import { IsEnum } from "class-validator";
-import { Etat } from "generated/prisma";
+import { Etat } from 'generated/prisma';
+import { IsEnum, IsArray, ValidateNested, IsInt, IsDateString } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class UpdateCommandeStockDto{
+class LotInputDto {
+  @IsInt()
+  produitId: number;
 
-    @IsEnum(Etat)
-    etat: Etat;
+  @IsDateString()
+  datePeremption: string;
+}
+
+export class UpdateCommandeStockWithLotsDto {
+  @IsEnum(Etat)
+  etat: Etat;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LotInputDto)
+  lots: LotInputDto[];
 }

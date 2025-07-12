@@ -3,6 +3,7 @@ import { FournisseurService } from './fournisseur.service';
 import { CreateFournisseurDto } from './fournisseurDto/fournisseur.dto';
 import { UpdateFournisseurDto } from './fournisseurDto/updateFournisseur.dto';
 import { get } from 'http';
+import { ProduitFournisseurOutputDto } from './fournisseurDto/fournisseurOut.dto';
 
 @Controller('fournisseur')
 export class FournisseurController {
@@ -20,6 +21,16 @@ export class FournisseurController {
     @Get()
     findAll(){
         return this.fournisseurService.findAll();
+    }
+
+    @Get("actif")
+    findAllActif(){
+        return this.fournisseurService.findAllActif();
+    }
+
+    @Get("deleted")
+    findAllDeleted(){
+        return this.fournisseurService.findAllDeleted();
     }
 
     @Get('fournisseurproduit')
@@ -44,18 +55,24 @@ export class FournisseurController {
         return this.fournisseurService.findOne(id)
     }
 
-    @Post(':id/delete')
+    @Put(':id/desactivate')
     delete(
         @Param('id', ParseIntPipe) id: number,
     ){
         return this.fournisseurService.delete(id)
     }
 
-    @Post(':id/activateFournisseur')
+    @Put(':id/reactivate')
     activateFournisseur(
         @Param('id', ParseIntPipe) id: number,
     ){
         return this.fournisseurService.activateFournisseur(id)
     }
+
+      // Nouvelle route pour récupérer les produits d'un fournisseur
+  @Get(':id/produits')
+  findProduitsByFournisseur(@Param('id', ParseIntPipe) id: number): Promise<ProduitFournisseurOutputDto[]> {
+    return this.fournisseurService.findProduitsByFournisseur(id);
+  }
 
 }
